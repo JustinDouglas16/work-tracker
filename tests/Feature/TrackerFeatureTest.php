@@ -1,20 +1,118 @@
 <?php
 
+use App\Models\Earning;
 use App\Models\Leave;
 use App\Models\LeaveSetting;
 use App\Models\LeaveType;
-use App\Models\Earning;
 use App\Models\OvertimeEntry;
 use App\Models\User;
+use Database\Seeders\JustinUserSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Laravel\Fortify\Actions\ConfirmTwoFactorAuthentication;
 use Laravel\Fortify\Actions\EnableTwoFactorAuthentication;
+use PragmaRX\Google2FA\Google2FA;
 
 uses(RefreshDatabase::class);
 
+it('offers SRD and USD with SRD selected for new earnings', function (): void {
+    $this->actingAs(User::factory()->create())
+        ->get(route('dashboard'))
+        ->assertSuccessful()
+        ->assertSee('<select name="currency"', false)
+        ->assertSee('<option value="SRD" selected>SRD</option>', false)
+        ->assertSee('<option value="USD" >USD</option>', false)
+        ->assertDontSee('<input name="currency"', false);
+});
+
+it('preserves the currency selection after earnings validation fails', function (string $currency): void {
+    $this->actingAs(User::factory()->create())
+        ->from(route('dashboard'))
+        ->post(route('earnings.store'), [
+            'pay_date' => '2026-11-09',
+            'base_amount' => -1,
+            'currency' => $currency,
+        ])
+        ->assertRedirect(route('dashboard'))
+        ->assertSessionHasErrors('base_amount')
+        ->assertSessionHasInput('currency', $currency);
+
+    $this->get(route('dashboard'))
+        ->assertSuccessful()
+        ->assertSee('<option value="'.$currency.'" selected>'.$currency.'</option>', false);
+
+    expect(Earning::query()->count())->toBe(0);
+})->with(['SRD', 'USD']);
+
+it('defaults omitted and blank earnings currencies to SRD', function (array $currencyInput): void {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->postJson(route('earnings.store'), [
+            'pay_date' => '2026-11-09',
+            'base_amount' => 100,
+            ...$currencyInput,
+        ])
+        ->assertCreated()
+        ->assertJsonPath('earning.currency', 'SRD');
+
+    expect($user->earnings()->sole()->currency)->toBe('SRD');
+})->with([
+    'omitted' => [[]],
+    'null' => [['currency' => null]],
+    'blank' => [['currency' => '']],
+]);
+
+it('stores the selected earnings currency and uppercases supplied codes', function (string $currency, string $storedCurrency): void {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->postJson(route('earnings.store'), [
+            'pay_date' => '2026-11-09',
+            'base_amount' => 100,
+            'currency' => $currency,
+        ])
+        ->assertCreated()
+        ->assertJsonPath('earning.currency', $storedCurrency);
+
+    expect($user->earnings()->sole()->currency)->toBe($storedCurrency);
+})->with([
+    ['SRD', 'SRD'],
+    ['USD', 'USD'],
+    ['usd', 'USD'],
+]);
+
+it('defaults new earning models and factory records to SRD', function (): void {
+    expect((new Earning)->currency)->toBe('SRD')
+        ->and(Earning::factory()->create()->refresh()->currency)->toBe('SRD');
+});
+
+it('changes the database currency default without relabeling stored earnings', function (): void {
+    $migration = require database_path('migrations/2026_11_09_133008_change_earnings_currency_default_to_srd.php');
+    $migration->down();
+
+    $earning = Earning::factory()->create(['currency' => 'USD']);
+    $migration->up();
+
+    $earningId = DB::table((new Earning)->getTable())->insertGetId([
+        'user_id' => $earning->user_id,
+        'pay_date' => '2026-11-09',
+    ]);
+
+    expect($earning->refresh()->currency)->toBe('USD')
+        ->and(Earning::query()->findOrFail($earningId)->currency)->toBe('SRD');
+
+    $migration->down();
+
+    expect($earning->refresh()->currency)->toBe('USD')
+        ->and(Earning::query()->findOrFail($earningId)->currency)->toBe('SRD');
+
+    $migration->up();
+});
+
 it('shows a login screen and can log out', function (): void {
-    $this->seed(\Database\Seeders\JustinUserSeeder::class);
+    $this->seed(JustinUserSeeder::class);
 
     $this->get(route('login'))
         ->assertSuccessful()
@@ -60,12 +158,12 @@ it('marks dashboard sensitive values for privacy mode', function (): void {
         ->assertSee('data-private', false)
         ->assertSee($user->email)
         ->assertSee('$135.00')
-        ->assertSee('USD 135.00')
+        ->assertSee('SRD 135.00')
         ->assertSee('Base 100.00');
 });
 
 it('requires a two factor code after password when enabled', function (): void {
-    $this->seed(\Database\Seeders\JustinUserSeeder::class);
+    $this->seed(JustinUserSeeder::class);
     $user = User::query()->where('username', 'justin')->firstOrFail();
     $secret = 'JBSWY3DPEHPK3PXP';
 
@@ -75,7 +173,7 @@ it('requires a two factor code after password when enabled', function (): void {
     ])->save();
     app(ConfirmTwoFactorAuthentication::class)(
         $user,
-        app(\PragmaRX\Google2FA\Google2FA::class)->getCurrentOtp($secret),
+        app(Google2FA::class)->getCurrentOtp($secret),
     );
 
     $this->post(route('login.store'), [

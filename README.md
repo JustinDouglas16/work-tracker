@@ -29,7 +29,7 @@ Records belong to individual users. The current installation workflow is geared 
 | Leave | Type, inclusive date range, optional reason, weekday calculation, paid balance deductions, and refunds on deletion. |
 | Balance | Manual adjustments and automatic catch-up of monthly accrual. |
 | Overtime | Work date, start/end times, optional notes, and calculated duration including overnight shifts. |
-| Earnings | Pay date, base pay, bonus, overtime pay, and currency code. |
+| Earnings | Pay date, base pay, bonus, overtime pay, and an SRD/USD currency dropdown (SRD selected initially). |
 | Account security | Email or username login, logout, and authenticator-based two-factor authentication. |
 | Display | Light/dark themes and privacy mode for selected dashboard values. |
 | Backups | File and database archive configuration using local storage. |
@@ -235,11 +235,13 @@ Notes are optional and limited to 1,000 characters. Hours are calculated server-
 
 ## Earnings and totals
 
-Each earnings record stores a pay date, required nonnegative base amount, optional nonnegative bonus/overtime pay, and optional three-character currency. Missing bonus and overtime amounts default to zero; currency defaults to `USD` and is uppercased.
+Each earnings record stores a pay date, required nonnegative base amount, optional nonnegative bonus/overtime pay, and optional three-character currency. The dashboard currency dropdown offers `SRD` and `USD`, initially selects `SRD`, and preserves the selected currency after validation errors. Missing bonus and overtime amounts default to zero; omitted or blank currency defaults to `SRD` and supplied currency is uppercased.
+
+The model, factory, and database default to `SRD` for new records. Run `php artisan migrate` on existing installations to apply the database default change; existing records retain their stored currency codes.
 
 A record's total is `base_amount + bonus_amount + overtime_pay_amount`. The dashboard uses SQL `SUM` across those components and returns zero when there are no records.
 
-Overtime pay is entered independently of overtime hours. Payments are not linked to individual overtime entries. Currency validation checks length rather than a supported-currency list.
+Overtime pay is entered independently of overtime hours. Payments are not linked to individual overtime entries. Server-side currency validation still checks length rather than enforcing the dropdown's supported-currency list.
 
 **Current limitation:** The summary adds records together regardless of currency and prefixes the result with `$`. History entries display their own currency code. Mixed-currency summaries are not converted monetary totals.
 
@@ -391,7 +393,7 @@ This is a planning backlog, not an immediate implementation commitment. The orde
 - [ ] **Replace fixed seeded credentials.** Add deliberate account provisioning without a committed password; prevent repeat seeding from resetting existing passwords. Update feature tests that depend on those credentials.
 - [ ] **Serialize all balance changes.** Leave creation checks then decrements without explicitly locking the settings row. Apply consistent locking to accrual, create/edit/delete, and manual adjustments; test simultaneous requests against MySQL to prevent overspending/lost updates.
 - [ ] **Accrue consistently before writes.** Bring accrual up to date before balance-sensitive operations instead of depending on an earlier dashboard read. Define manual corrections when monthly accrual is pending.
-- [ ] **Handle currencies correctly.** Group totals by currency or enforce one currency per account. Validate supported codes, render the correct currency, and add mixed-currency regression coverage.
+- [ ] **Handle currency totals and API validation correctly.** The form offers SRD/USD with SRD as the default, but summaries still combine currencies. Group totals by currency or enforce one currency per account, validate supported codes server-side, render the correct currency, and add mixed-currency regression coverage.
 - [ ] **Add a balance audit trail.** Record accrual credits, leave deductions/refunds, and manual adjustment reasons so balances can be explained and reconciled.
 - [ ] **Complete 2FA management.** Expose recovery-code viewing/regeneration, consider password confirmation for security-sensitive changes, and review hidden user attributes so future JSON serialization cannot expose two-factor fields.
 - [ ] **Define duplicate/overlap rules.** Decide whether overlapping leave, overlapping overtime, and duplicate earnings should be rejected or flagged, including overtime crossing midnight.

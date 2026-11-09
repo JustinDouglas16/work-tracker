@@ -115,7 +115,10 @@
                         </label>
                         <label>
                             <span class="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Currency</span>
-                            <input name="currency" maxlength="3" value="{{ old('currency', 'USD') }}" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm uppercase outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-teal-500 dark:focus:ring-teal-900">
+                            <select name="currency" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-teal-500 dark:focus:ring-teal-900">
+                                <option value="SRD" @selected(old('currency', 'SRD') === 'SRD')>SRD</option>
+                                <option value="USD" @selected(old('currency', 'SRD') === 'USD')>USD</option>
+                            </select>
                         </label>
                         <label>
                             <span class="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Base</span>

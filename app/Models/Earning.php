@@ -2,14 +2,19 @@
 
 namespace App\Models;
 
+use Database\Factories\EarningFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Earning extends Model
 {
-    /** @use HasFactory<\Database\Factories\EarningFactory> */
+    /** @use HasFactory<EarningFactory> */
     use HasFactory;
+
+    protected $attributes = [
+        'currency' => 'SRD',
+    ];
 
     protected $fillable = [
         'user_id',

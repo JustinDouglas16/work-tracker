@@ -25,7 +25,7 @@ class EarningController extends Controller
             'base_amount' => $validated['base_amount'],
             'bonus_amount' => $validated['bonus_amount'] ?? 0,
             'overtime_pay_amount' => $validated['overtime_pay_amount'] ?? 0,
-            'currency' => strtoupper($validated['currency'] ?? 'USD'),
+            'currency' => strtoupper($validated['currency'] ?? 'SRD'),
         ]);
 
         if (! $request->expectsJson()) {

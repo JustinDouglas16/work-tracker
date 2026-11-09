@@ -24,7 +24,7 @@ class EarningFactory extends Factory
             'base_amount' => fake()->randomFloat(2, 1000, 5000),
             'bonus_amount' => fake()->randomFloat(2, 0, 500),
             'overtime_pay_amount' => fake()->randomFloat(2, 0, 300),
-            'currency' => 'USD',
+            'currency' => 'SRD',
         ];
     }
 }
