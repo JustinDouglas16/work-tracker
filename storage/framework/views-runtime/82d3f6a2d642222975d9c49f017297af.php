@@ -1,1 +1,0 @@
-<?php /**PATH C:\wamp64\www\work-tracker\resources\views\welcome.blade.php ENDPATH**/ ?>
