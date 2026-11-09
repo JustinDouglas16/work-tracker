@@ -1,0 +1,23 @@
+@props([
+    'title' => 'Work Tracker',
+    'maxWidth' => 'max-w-7xl',
+])
+
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ $title }}</title>
+    <x-theme-script />
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+</head>
+
+<body class="min-h-screen bg-zinc-100 text-zinc-950 antialiased dark:bg-zinc-950 dark:text-zinc-100">
+    <main {{ $attributes->merge(['class' => "mx-auto flex w-full {$maxWidth} flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8"]) }}>
+        {{ $slot }}
+    </main>
+</body>
+
+</html>
